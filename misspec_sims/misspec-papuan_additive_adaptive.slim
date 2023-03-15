@@ -1,0 +1,286 @@
+// set up a simple neutral simulation 
+initialize() { 
+initializeMutationRate(1.8e-08*(2.31/3.31)*10); 
+initializeTreeSeq(); 
+
+// m1 mutation type: nonsyn 
+// muts added at 2.31/3.31 the mutation rate, syn muts added w/msprime 
+initializeMutationType("m1", 0.5, "g", -0.01026*10, 0.186); 
+
+// m2 mutation type: adaptive 
+defineConstant("adaptsel", runif(1,0.0001*10,0.01*10)); 
+initializeMutationType("m2", 0.5, "s", "return adaptsel;"); //0.0125*10 
+m2.convertToSubstitution == T; 
+
+//genomic element: exon and uses a mixture of syn and nonsyn at a 1:2.31 ratio (Huber et al.) 
+initializeGenomicElementType("g1", c(m1), c(1.0)); // no synonymous muts 
+
+//read in exon and recomb info 
+info_lines = readFile("/Users/xinjunzhang/Desktop/AI-ML_Project/adaptiveIntrogressionML-master/scripts_simulation_treeseq/extract_s/segments/sim_seq_info_chr3region.txt"); //EPAS1 
+
+//recombination 
+rec_ends = NULL; 
+rec_rates = NULL; 
+for (line in info_lines[substr(info_lines, 0, 2) == "rec"]) 
+{ 
+components = strsplit(line, " "); 
+rec_ends = c(rec_ends, asInteger(components[1])); 
+rec_rates = c(rec_rates, asFloat(components[2])); 
+} 
+//multiply rec rates by scaling factor 
+initializeRecombinationRate(0.5*(1-(1-2*rec_rates)^10), rec_ends); 
+
+//exons 
+for (line in info_lines[substr(info_lines, 0, 2) == "exo"]) 
+{ 
+components = strsplit(line, " "); 
+exon_starts = asInteger(components[1]); 
+exon_ends = asInteger(components[2]); 
+initializeGenomicElement(g1, exon_starts, exon_ends); 
+} 
+
+} 
+
+1:34693 fitness(m1) { 
+h = mut.mutationType.dominanceCoeff; 
+if (homozygous) { 
+return ((1.0 + 0.5*mut.selectionCoeff)*(1.0 + 0.5*mut.selectionCoeff)); 
+} else { 
+return (1.0 + mut.selectionCoeff * h); 
+} 
+} 
+
+// burn-in for ancestral population 
+1 early() { 
+sim.addSubpop("p1", 3267); //Ne=32671, Human-Nea-Den before split
+defineConstant("simID",getSeed());defineConstant("newsel",getSeed()); 
+sim.tag = simID; 
+} 
+
+//32669 late() {sim.outputFull("/Users/xinjunzhang/Desktop/papuan_burnt-in.txt");} 
+//32669 late() {
+//sim.readFromPopulationFile("/Users/xinjunzhang/Desktop/papuan_burnt-in.txt");
+//setSeed(getSeed() + 1); //sim.simulationFinished(); 
+//rm("simID",removeConstants=T); rm("newsel",removeConstants=T); 
+//defineConstant("simID",getSeed()); defineConstant("newsel",runif(1,0.0001*10,0.01*10)); 
+//}
+
+// after burn-in, split off Neanderthals+Denisovan (p2) at 2023 generations ago; present day should be burn-in+this generation = 34693 generations
+
+32670 early() { 
+sim.addSubpopSplit("p2", 1325, p1); 
+p1.setSubpopulationSize(4156); //ancestral African+ghost pop size = 41563
+} 
+
+
+
+//divergence between Neanderthal and Denisovan at 15090 gen ago
+33184 early(){ //34693-1509
+sim.addSubpopSplit("p3", 1325, p2); //p3=Denisovan, p2=Neanderthal, remain constant size
+p2.setSubpopulationSize(1325); 
+p3.setSubpopulationSize(100); //Altai Denisovan before D1 and D2 split has Ne=100
+}
+
+//output simulation before introducing beneficial mutation to Denisovans
+33184 late() { 
+sim.outputFull("/Users/xinjunzhang/Desktop/chr3region_"  +"allvar_"+ "temp_additive" + ".txt"); 
+} 
+
+//introducing the beneficial mutation to all Denisovans after splitting off from Neanderthals
+33185 late(){ 
+target = sample(p3.genomes, 200); //fix it in source pop 
+target.addNewDrawnMutation(m2, 2730973); //random mutation in the middle of the segment 
+rm("simID",removeConstants=T); 
+defineConstant("simID",getSeed()); 
+sim.outputMutations(sim.mutationsOfType(m2)); 
+} 
+
+33186 early(){ 
+mut = sim.mutationsOfType(m2); 
+if (sim.tag!=simID){ 
+mut.setSelectionCoeff(asFloat(newsel));} 
+//rm("newsel",removeConstants=T); 
+sim.outputMutations(sim.mutationsOfType(m2)); 
+} 
+
+
+33185: 34693 late() { 
+muts = sim.mutationsOfType(m2); 
+if (size(muts) !=1) 
+{ 
+cat("RESTART \n"); 
+sim.readFromPopulationFile("/Users/xinjunzhang/Desktop/chr3region_"  +"allvar_"+ "temp_additive" + ".txt"); 
+setSeed(getSeed() + 1); //sim.simulationFinished(); 
+rm("simID",removeConstants=T); rm("newsel",removeConstants=T); 
+defineConstant("simID",getSeed()); defineConstant("newsel",runif(1,0.0001*10,0.01*10)); 
+} 
+} 
+
+
+
+
+
+//divergence between D2 and Denisovan at 12500 gen ago
+33443 early(){ 
+sim.addSubpopSplit("p4", 100, p3); //p3=Denisovan,p4=D2
+p4.setSubpopulationSize(1325); 
+p3.setSubpopulationSize(100); 
+}
+
+//divergence between D1 and Denisovan at 9750 gen ago, after which the Denisovan (Altai) pop size becomes 5083
+33718 early(){ 
+sim.addSubpopSplit("p5", 100, p3); //p3=Denisovan,p5=D1
+p5.setSubpopulationSize(1325); 
+p3.setSubpopulationSize(508); 
+}
+
+
+//Altai Nea and introgressing Nea split at 3375 gen ago
+34353 early(){
+sim.addSubpopSplit("p6", 83, p2); //p6=Altai Nea,p2=Nea
+p2.setSubpopulationSize(1325); 
+}
+
+
+//the split of African and ghost at 2218 gen ago
+34471 early(){
+sim.addSubpopSplit("p7", 852, p1); //p7=ghost here (Ne=8516), p1=African
+p1.setSubpopulationSize(4843); 
+}
+
+//2119 gen ago, ghost pop went through bottleneck at Ne=1394 (last 100 generations - arbitrary, need to verify)
+34481 early(){
+p7.setSubpopulationSize(139); 
+}
+
+34491 early(){
+p7.setSubpopulationSize(852); 
+}
+
+//Neanderthal -> non-African (plus ghost) introgression at 1853 gen ago at 2.4%
+34508 late(){
+p7.setMigrationRates(p2, 0.024); 
+}
+34509 late(){
+p7.setMigrationRates(p2, 0.0); 
+}
+
+
+//the split of ghost and papuan at 1784 gen ago
+34515 early(){
+sim.addSubpopSplit("p8", 24, p7); //p7=ghost here (Ne=8516), p8=papuan (in bottleneck)
+p7.setSubpopulationSize(852); 
+}
+
+//the split of ghost and eurasian at 1758 gen ago
+34517 early(){
+sim.addSubpopSplit("p9", 223, p7); //p7=ghost here (Ne=8516), p9=ancestral eurasian (in bottleneck)
+p7.setSubpopulationSize(852); 
+}
+
+//at 1685 gen ago, papuan end bottleneck and resume size to 8834
+34524 early(){
+p8.setSubpopulationSize(883); 
+}
+
+
+//at 1659 gen ago, ancestral eurasian changed pop size to 12971
+34527 early(){
+p9.setSubpopulationSize(1297); 
+p8.setMigrationRates(c(p9), c(5.72e-4));//start papuan-eurasia
+p7.setMigrationRates(c(p9), c(4.42e-4));//start ghost-eurasia
+}
+
+//Neanderthal -> ancestral eurasian introgression at 1566 gen ago at 1.1%
+34536 late(){
+p9.setMigrationRates(p2, 0.011); 
+}
+34537 late(){
+p9.setMigrationRates(p2, 0.0); 
+}
+
+
+//Neanderthal -> papuan introgression at 1412 gen ago at 0.2%
+34552 late(){
+p8.setMigrationRates(p2, 0.002); 
+}
+34553 late(){
+p8.setMigrationRates(p2, 0.0); 
+}
+
+//sample Altai Denisovan 40ka ~ 1379 gen ago
+34555 late() { 
+//sim.outputMutations(sim.mutationsOfType(m2)); 
+//cat("tempfreq: "); 
+//print(sim.mutationFrequencies(p3, sim.mutationsOfType(m2))); 
+sim.treeSeqRememberIndividuals(sample(p3.individuals, 2)); 
+p3.setSubpopulationSize(0); 
+} 
+
+//1353 gen ago, D1 and D2 introgressed with papuan at 2.2 and 1.8% respectively (jacobs 2019; in stdpopsim, D2 introgressed at 1576 gen ago and D1 introgressed at 1028 gen ago)
+34558 early(){
+sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); 
+p8.setMigrationRates(c(p4,p5), c(0.018, 0.022)); //p4=D2, p5=D1
+}
+34559 early(){
+p8.setMigrationRates(c(p4,p5), c(0, 0)); //p4=D2, p5=D1
+p4.setSubpopulationSize(0); //remove D2 population
+p5.setSubpopulationSize(0); //remove D1 population
+}
+
+34559:34692 late(){ 
+//sim.outputMutations(sim.mutationsOfType(m2)); 
+cat("tempfreq in Papuan: "); 
+print(sim.mutationFrequencies(p8, sim.mutationsOfType(m2))); 
+//sim.treeSeqRememberIndividuals(sample(p3.individuals, 2)); 
+//p3.setSubpopulationSize(0); 
+} 
+
+//at 1293 gen ago, ancestral eurasian split into European (6962) and Asian (9025)
+34564 early(){
+sim.addSubpopSplit("p10", 903, p9); //p9=ancestral eurasian, p10=Asian
+p9.setSubpopulationSize(696); //now p9 becomes eurasian
+
+p1.setMigrationRates(p7, 1.79e-4); //ghost-african migration
+p7.setMigrationRates(p1, 1.79e-4); //ghost-african migration
+
+p9.setMigrationRates(p7, 4.42e-4); //ghost-european migration
+p7.setMigrationRates(p9, 4.42e-4); //ghost-european migration
+
+p9.setMigrationRates(c(p10), c(3.14e-5));//european-asian
+p10.setMigrationRates(c(p9), c(3.14e-5));//european-asian
+
+p8.setMigrationRates(c(p10), c(5.72e-5));//papuan-asian
+p10.setMigrationRates(c(p8), c(5.72e-5));//papuan-asian
+
+p8.setMigrationRates(c(p9), c(0));//end papuan-eurasia
+p7.setMigrationRates(c(p9), c(0));//end ghost-eurasia
+}
+
+//Neanderthal -> east asian introgression at 883 gen ago at 0.2%
+34605 late(){
+p10.setMigrationRates(p2, 0.002); 
+}
+34606 late(){
+p10.setMigrationRates(p2, 0.0); 
+//p2.setSubpopulationSize(0); //remove neanderthal population
+}
+
+//sample modern Papuan samples
+34693 late(){
+sim.outputMutations(sim.mutationsOfType(m2)); 
+cat("Frequencies: "); 
+print(sim.mutationFrequencies(p8, sim.mutationsOfType(m2))); 
+sim.treeSeqOutput("/Users/xinjunzhang/Desktop/chr3region_"  +"misspec-segment_"+ "test_additive_adaptive" + ".trees"); 
+}
+
+
+//34559: 34565 late() { 
+//mut = sim.mutationsOfType(m2); 
+//if (size(mut)!=0){ 
+//if (mut.selectionCoeff != 0.0) 
+//{mut.setSelectionCoeff(0.0);} 
+//} 
+//} 
+
+
