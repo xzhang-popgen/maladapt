@@ -43,6 +43,7 @@ The development of MaLAdapt requires the following steps:
 
 
 #######MALADAPT PIPELINE REQUIRED MODULES#######
+
 	Required python3 modules:
 
 		1. msprime==0.7.0
