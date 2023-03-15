@@ -1,0 +1,1 @@
+Dstat	exon	U_1_50_100	U_1_80_100	U_1_20_100	U_1_0_100	thetaH2	divratioavg	thetapi3	thetaH3	p3_H2H1	p3_H2	Het	p3_H1	Zns3	thetapi2	Zns2	p3_H12	p2_H2H1	p3_S	thetaW3	p2_H12	p2_S	thetaW2	p2_H1	p2_H2	r	p1_H1	thetaH1	p1_H2	p1_H2H1	thetaW1	Zns1	thetapi1	p1_S	p1_H12	fD

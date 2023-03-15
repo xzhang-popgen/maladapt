@@ -1,0 +1,1 @@
+Q_1_100_max	Q_1_100_q95	Dstat	exon	U_1_50_100	U_1_80_100	U_1_20_100	U_1_0_100	thetaH2	divratioavg	thetapi3	thetaH3	p3_H2H1	p3_H2	Het	p3_H1	Zns3	thetapi2
