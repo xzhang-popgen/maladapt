@@ -13,7 +13,7 @@ The development of MaLAdapt requires the following steps:
 		3adding_exon+r_info_simulations.py #add the separately computed exon density and recombination rate information to the aforementioned combined dataframe
 		4downsample_class-ratio_simulations.py #downsample the non-AI class windows (2:1 ratio)
 
-	For running the slim simulation from bash script (UCLA hoffman2 cluster), a sample job script can be found in "sample_bash_command.sh"
+	For running the slim simulation from a bash script (UCLA hoffman2 cluster), a sample job script can be found in "sample_bash_command.sh"
 
 	For the non-AI selective sweep simulations, the slim and python scripts can be found under the nonAIsweep/ directory in the slim/ directory
 
@@ -29,7 +29,7 @@ The development of MaLAdapt requires the following steps:
 	slim templates and python simulation scripts can be found in misspec_sims/ directory
 
 
-#4. Apply MaLAdapt to 1000 genomes empirical data
+#4. Apply MaLAdapt to the 1000 genomes human genomic data
 
 	The empirical/ directory includes the python scripts used to compute features from 1KG populations, add the exon density/recombination rate features, and the application of MaLAdapt prediction
 
@@ -43,11 +43,11 @@ The development of MaLAdapt requires the following steps:
 
 
 #######MALADAPT PIPELINE REQUIRED MODULES#######
-Required python3 modules:
+	Required python3 modules:
 
-	1. msprime==0.7.0
-	2. tskit==0.1.5
-	3. pyslim==0.401
+		1. msprime==0.7.0
+		2. tskit==0.1.5
+		3. pyslim==0.401
 
-Required slim version: 3.2.0
+	Required slim version: 3.2.0
 
