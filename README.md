@@ -36,7 +36,7 @@ The development of MaLAdapt requires the following steps:
 	All scripts should be used under the numeric order
 
 
-#5. Additional files on Google Drive (https://drive.google.com/drive/folders/10r8e5WbhcgAIjC0DVmIe4saVYODRgFCO?usp=share_link)
+#5. Additional files on Google Drive https://drive.google.com/drive/u/2/folders/1HO-69dNA7Q_PIrBIStAx9W9Tv4fcr-Fp
 
 	1. A pretrained model of MaLAdapt (published version in Zhang et al. 2023 MBE)
 	2. 1000 genomic segments used in MaLAdapt training simulations
